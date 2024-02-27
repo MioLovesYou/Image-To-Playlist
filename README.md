@@ -20,3 +20,14 @@ Adopting the Agile methodology, the project progresses through data collection, 
 
 ## Evaluation
 The effectiveness of the music recommendation is gauged through user feedback on the alignment of the playlist with the image's sentiment.
+
+## Roadmap
+- ~~Web-Application (User Interface)~~ **Completed**
+- AI-Driven Sentiment Generation **Work in Progress**
+- Spotify API Implementation **Incompleted**
+- Playlist Curation **Incompleted**
+- Testing **Incompleted**
+- Studies **Incompleted**
+
+Key Information:
+Dataset used: ~~Imagenet~~, ~~MS-COCO~~, simula datasets 
