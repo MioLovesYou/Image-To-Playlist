@@ -1,13 +1,32 @@
-import tensorflow as tf
-from tensorflow.keras import layers, models
-num_classes = 200 #sentiments we're collecting
+from tensorflow.keras.applications import InceptionV3
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Model
 
-def build_model(input_shape):
-    model = models.Sequential()
-    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape))
-    model.add(layers.MaxPooling2D((2, 2)))
-    # Add more layers as needed
-    model.add(layers.Flatten())
-    model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.Dense(num_classes, activation='softmax'))  # num_classes is the number of sentiments
+def build_model(num_classes):
+    # grabbin the  InceptionV3 not including the top layer (the classification layer)
+    base_model = InceptionV3(weights='imagenet', include_top=False)
+    x = base_model.output  # get potput 
+    
+    # add a global average pooling layer to reduce dimensions and get redady for classification
+    x = GlobalAveragePooling2D()(x)
+    
+    # guessing / prediction =  num_classes  - 25 since thats howm any annotaitn
+    predictions = Dense(num_classes, activation='softmax')(x)
+    
+    # create the final model--  inputs and outputs
+    model = Model(inputs=base_model.input, outputs=predictions)
+
+    # freezing the base layers so it dont update when trianing
+    for layer in base_model.layers:
+        layer.trainable = False
+
     return model
+
+
+
+# current inception 
+# modelsa: inception net, vgg, residual networks
+# different model accuracies take note
+# more epoches
+# tensorflow visual loss - visualised between training and validation 
+# justify epoches - use visualisation

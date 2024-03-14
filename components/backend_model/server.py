@@ -1,34 +1,18 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 import os
+import json
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
-# Load your trained model (provide the correct path to your model file)
 model = load_model('models/model.h5')
 
-# Load WNIDs and labels
-wnids = []
-wnid_to_label = {}
-with open('../../datasets/tiny-imagenet-200/wnids.txt', 'r') as f:
-    wnids = [line.strip() for line in f.readlines()]
-
-with open('../../datasets/tiny-imagenet-200/words.txt', 'r') as f:
-    for line in f:
-        wnid, label = line.strip().split('\t', 1)
-        wnid_to_label[wnid] = label
-
-# Function to convert model output to labels
-def get_labels_from_output(output_array):
-    # Find the index of the highest probability
-    top_indices = output_array.argsort()[-5:][::-1]  # Get top 5 indices, for example
-    # Get the corresponding wnids and labels
-    labels = [wnid_to_label[wnids[idx]] for idx in top_indices]
-    return labels
+# Assuming the labels correspond to the questions in your CSV, in order.
+labels = [f"Q{i}" for i in range(1, 130)]
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -38,27 +22,32 @@ def upload_file():
     if file.filename == '':
         return 'No selected image', 400
     if file:
-        # Save the file to a directory
+       # ssave the file to upload (/uploads)
         filename = file.filename
         save_path = os.path.join('uploads', filename)
         file.save(save_path)
 
-        # Preprocess the image
-        img = image.load_img(save_path, target_size=(64, 64))  # Adjust target_size as per your model's input layer
+        # preprocess the image 
+        img = image.load_img(save_path, target_size=(224, 224))  # adjust target_size to match model
         img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0)  # Create a batch
-        img_array /= 255.0  # Normalize to [0,1]
+        img_array = np.expand_dims(img_array, axis=0)  # create a batch
+        img_array /= 255.0  # normalize into 0-1
 
-        # Predict the sentiment or tags
-        predictions = model.predict(img_array)
+        predictions = model.predict(img_array).flatten()
 
-        # Convert predictions to labels
-        labels = get_labels_from_output(predictions.flatten())
+        # Map predictions to labels
+        prediction_labels = dict(zip(labels, predictions))
 
-        # Output human-readable labels to console
-        print(labels)
+        # Sort by highest chance (probability)
+        sorted_predictions = sorted(prediction_labels.items(), key=lambda x: x[1], reverse=True)
 
-        return 'Image successfully uploaded and processed', 200
+        # Convert sorted predictions to a more friendly format
+        sorted_predictions_dict = [{"label": label, "probability": float(probability)} for label, probability in sorted_predictions]
+        
+        print(sorted_predictions_dict)
+
+        # Return sorted predictions
+        return jsonify(sorted_predictions_dict), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
